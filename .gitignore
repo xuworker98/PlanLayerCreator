@@ -1,0 +1,48 @@
+# 构建产物
+build/
+build_*/
+dist/
+output/
+*.exe
+*.zip
+*.msi
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.pyd
+
+# 测试输出
+test_output*/
+plc_*/
+self_test.json
+
+# 真实业务数据（禁止提交客户/项目数据）
+data/*拉网*
+data/*网格图层*
+data/*规划*
+data/*平陆运河*
+data/*物理网格*
+data/*.xls
+data/*.xlsx
+data/*.tab
+data/*.TAB
+data/*.map
+data/*.MAP
+data/*.dat
+data/*.DAT
+data/*.id
+data/*.ID
+data/*.ind
+data/*.IND
+data/*.qmd
+data/*.qml
+
+# 系统文件
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/

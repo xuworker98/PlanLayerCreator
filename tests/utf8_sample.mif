@@ -1,0 +1,12 @@
+Version 1520
+Charset "UTF-8"
+Delimiter ","
+CoordSys Earth Projection 1, 0
+Columns 3
+  经度 Float
+  纬度 Float
+  中文字段 Char(80)
+Data
+
+Point 116.400000 39.900000
+  Symbol (35,16711680,12,"MapInfo Symbols",0,0)
