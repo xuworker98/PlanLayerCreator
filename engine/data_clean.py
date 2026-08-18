@@ -43,7 +43,7 @@ def dms_to_decimal(val):
     return sign * (abs(d) + m / 60.0 + sec / 3600.0)
 
 
-def clean_numeric(df, col_specs):
+def clean_numeric(df, col_specs, illegal_details=None):
     """清洗 DataFrame 的数值列，返回 (清洗后df, 统计信息)
 
     Args:
@@ -55,6 +55,7 @@ def clean_numeric(df, col_specs):
             }
         kind: 'float' 或 'int'
         dms: 是否尝试度分秒转换（经纬度 True，其他 False）
+        illegal_details: 可选 list，收集非法字符明细 [(行号, 列名, 原值)]
 
     Returns:
         (df_clean, stats)
@@ -64,11 +65,18 @@ def clean_numeric(df, col_specs):
     stats = []
     total = len(df)
 
-    # 清洗所有字符串列的控制字符（防 XML 非法字符，如 \x0b、\x1f）
-    _CTRL = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+    # 清洗所有字符串列的非法 XML 字符（控制字符 + 非字符），记录明细
+    _ILLEGAL_PAT = r'[\x00-\x08\x0b\x0c\x0e-\x1f\uFFFE\uFFFF]'
     for c in df.columns:
         if df[c].dtype == object:
-            df[c] = df[c].map(lambda v: _CTRL.sub('', str(v)) if pd.notna(v) else v)
+            notna = df[c].notna()
+            if notna.any():
+                s = df.loc[notna, c].astype(str)
+                mask = s.str.contains(_ILLEGAL_PAT, regex=True, na=False)
+                if mask.any() and illegal_details is not None:
+                    for idx in s[mask].index:
+                        illegal_details.append((int(idx), c, s.loc[idx]))
+                df.loc[notna, c] = s.str.replace(_ILLEGAL_PAT, '', regex=True)
 
     for col, spec in col_specs.items():
         if col not in df.columns:

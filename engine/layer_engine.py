@@ -83,12 +83,12 @@ def _apply_coord_correction(df, lon_col, lat_col, do_correct):
 
 
 def _save_kml(kml, output_path):
-    """保存为 KML 或 KMZ"""
+    """保存为 KML 或 KMZ（format=False 跳过 minidom 解析，避免非法字符报错）"""
     ext = os.path.splitext(output_path)[1].lower()
     if ext == '.kmz':
-        kml.savekmz(output_path)
+        kml.savekmz(output_path, format=False)
     else:
-        kml.save(output_path)
+        kml.save(output_path, format=False)
 
 
 def _write_clean_log(output_path, stats, total_rows, final_rows):
@@ -101,6 +101,41 @@ def _write_clean_log(output_path, stats, total_rows, final_rows):
             log_path = os.path.join(out_dir, '生成日志.txt')
             with open(log_path, 'w', encoding='utf-8') as f:
                 f.write(log_text)
+    except Exception:
+        pass
+
+
+def _write_illegal_log(output_path, illegal_details):
+    """将非法字符明细写入输出目录（错误日志.txt）"""
+    try:
+        if not illegal_details:
+            return
+        out_dir = os.path.dirname(os.path.abspath(output_path))
+        if not out_dir:
+            return
+        log_path = os.path.join(out_dir, '错误日志.txt')
+        from collections import Counter
+        by_col = Counter(d[1] for d in illegal_details)
+        lines = [
+            "=" * 60,
+            "数据错误日志（非法字符）",
+            "=" * 60,
+            f"发现 {len(illegal_details)} 处非法字符（已自动清洗，不影响生成）：",
+            "",
+            "【按字段分类汇总】",
+        ]
+        for col, cnt in by_col.most_common():
+            lines.append(f"  - {col}: {cnt} 处")
+        lines.append("")
+        lines.append("【明细（前 100 条）】")
+        lines.append("  行号\t字段\t原值(含非法字符)")
+        for idx, col, val in illegal_details[:100]:
+            lines.append(f"  {idx}\t{col}\t{repr(val)[:80]}")
+        if len(illegal_details) > 100:
+            lines.append(f"  ...（共 {len(illegal_details)} 条，仅显示前 100 条）")
+        lines.append("")
+        with open(log_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
     except Exception:
         pass
 
@@ -290,14 +325,16 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
 
     total_rows = len(df)
 
-    # 统一清洗：度分秒 + 类型强制 + 空值剔除
+    # 统一清洗：度分秒 + 类型强制 + 空值剔除 + 非法字符清洗
     from engine.data_clean import clean_numeric
     col_specs = {
         lon_col: {'kind': 'float', 'lo': -180, 'hi': 180, 'dms': True},
         lat_col: {'kind': 'float', 'lo': -90, 'hi': 90, 'dms': True},
         az_col: {'kind': 'int', 'lo': 0, 'hi': 360},
     }
-    df, stats = clean_numeric(df, col_specs)
+    illegal_details = []
+    df, stats = clean_numeric(df, col_specs, illegal_details)
+    _write_illegal_log(output_path, illegal_details)
 
     if df.empty:
         raise ValueError("无有效方位角数据")

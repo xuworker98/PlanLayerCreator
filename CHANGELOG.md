@@ -2,6 +2,15 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)（Semantic Versioning）。
 
+## [1.1.3] - 2026-08-18
+
+### 修复
+- 扇区 KML/KMZ 报错：改用 format=False 跳过 simplekml 的 minidom 解析，根除 not well-formed
+- 非法字符清洗：扩展为控制字符 + 非字符（\uFFFE/\uFFFF），并生成错误日志
+
+### 新增
+- 错误日志（错误日志.txt）：记录非法字符明细（行号/字段/原值）+ 生成异常详细堆栈
+
 ## [1.1.2] - 2026-08-18
 
 ### 修复

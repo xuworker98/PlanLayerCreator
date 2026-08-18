@@ -87,5 +87,36 @@ class GenerateWorker(QThread):
             self.finished.emit(f"生成完成！共 {count} 个要素 → {self.output_path}")
         except Exception as e:
             import traceback
-            self.error.emit(f"{e}\n{traceback.format_exc()}")
+            tb = traceback.format_exc()
+            self.error.emit(f"{e}\n{tb}")
             self._report(0, f"生成失败: {e}")
+            self._write_error_log(e, tb)
+
+    def _write_error_log(self, e, tb):
+        """生成异常时，写详细错误日志到输出目录（错误日志.txt）"""
+        try:
+            import os
+            import time
+            out_dir = os.path.dirname(os.path.abspath(self.output_path))
+            if not out_dir:
+                out_dir = os.getcwd()
+            log_path = os.path.join(out_dir, '错误日志.txt')
+            lines = [
+                "",
+                "=" * 60,
+                "生成错误日志",
+                "=" * 60,
+                f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"图层类型: {self.layer_type}",
+                f"输出文件: {self.output_path}",
+                f"输入行数: {len(self.df) if self.df is not None else 0}",
+                "",
+                f"错误信息: {e}",
+                "",
+                "详细堆栈:",
+                tb,
+            ]
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write('\n'.join(lines))
+        except Exception:
+            pass
