@@ -11,7 +11,7 @@ from shapely.geometry import Point as ShpPoint, Polygon as ShpPolygon
 from xml.sax.saxutils import escape as xml_escape
 
 from engine.grid_engine import grid_aggregate
-from utils.sector_utils import assign_sector_numbers_rule1, assign_sector_numbers_rule2, sector_polygon_vertices
+from utils.sector_utils import assign_sector_numbers_rule1, assign_sector_numbers_rule2, make_sector_vertex_generator
 from utils.wkt_parser import parse_wkt
 from utils.constants import LEVEL_COLORS_9
 
@@ -82,6 +82,20 @@ def _save_kml(kml, output_path):
         kml.savekmz(output_path)
     else:
         kml.save(output_path)
+
+
+def _write_clean_log(output_path, stats, total_rows, final_rows):
+    """将数据清洗日志写入输出目录（生成日志.txt）"""
+    try:
+        from engine.data_clean import format_clean_log
+        log_text = format_clean_log(stats, total_rows, final_rows)
+        out_dir = os.path.dirname(os.path.abspath(output_path))
+        if out_dir:
+            log_path = os.path.join(out_dir, '生成日志.txt')
+            with open(log_path, 'w', encoding='utf-8') as f:
+                f.write(log_text)
+    except Exception:
+        pass
 
 
 def _fix_tab_encoding(tab_path):
@@ -173,7 +187,13 @@ def generate_site_layer(df, mapping, style, output_path, do_correct=False, progr
     name_col = mapping.get('name', lon_col)
     label_col = mapping.get('label', name_col)
 
-    df = _clean_coords(df, lon_col, lat_col)
+    total_rows = len(df)
+    from engine.data_clean import clean_numeric
+    col_specs = {
+        lon_col: {'kind': 'float', 'lo': -180, 'hi': 180, 'dms': True},
+        lat_col: {'kind': 'float', 'lo': -90, 'hi': 90, 'dms': True},
+    }
+    df, stats = clean_numeric(df, col_specs)
     if do_correct:
         df = _apply_coord_correction(df, lon_col, lat_col, True)
 
@@ -200,7 +220,12 @@ def generate_site_layer(df, mapping, style, output_path, do_correct=False, progr
             pnt.style.iconstyle.scale = scale
             pnt.style.labelstyle.color = simplekml.Color.hexa(label_color[1:] + 'ff')
             _add_ext_data(pnt, row)
+            if idx % max(1, len(df) // 20) == 0 and progress_cb:
+                progress_cb(idx * 90 // max(1, len(df)), f"生成站点 {idx}/{len(df)}")
         _save_kml(kml, output_path)
+        if progress_cb:
+            progress_cb(100, f"完成 {len(df)} 个站点")
+        _write_clean_log(output_path, stats, total_rows, len(df))
         return len(df)
 
     elif ext == '.tab':
@@ -223,6 +248,7 @@ def generate_site_layer(df, mapping, style, output_path, do_correct=False, progr
             label_size=max(7, int(round(9 * float(style.get('scale', 1.0))))),
             show_label=style.get('show_label', True),
         )
+        _write_clean_log(output_path, stats, total_rows, len(df))
         return len(df)
 
     elif ext == '.shp':
@@ -232,6 +258,7 @@ def generate_site_layer(df, mapping, style, output_path, do_correct=False, progr
             props = {k: row[k] for k in df.columns if not pd.isna(row[k])}
             features.append({'geometry': ShpPoint(float(row[lon_col]), float(row[lat_col])), 'properties': props})
         _save_via_fiona({'features': features}, output_path, driver)
+        _write_clean_log(output_path, stats, total_rows, len(df))
         return len(df)
 
     raise ValueError(f"不支持的输出格式: {ext}")
@@ -241,10 +268,11 @@ def generate_site_layer(df, mapping, style, output_path, do_correct=False, progr
 # 扇区图层
 # ============================================================
 
-def generate_sector_layer(df, mapping, style, output_path, do_correct=False, extra=None):
+def generate_sector_layer(df, mapping, style, output_path, do_correct=False, extra=None, progress_cb=None):
     """
     生成扇区图层
     extra: {'rule': 2, 'bw_default': 65, 'r_default': 100, 'bw_col': '', 'r_col': '', ...}
+    progress_cb: callable(percent, message) — 可选进度回调
     """
     if extra is None:
         extra = {}
@@ -253,13 +281,16 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
     name_col = mapping.get('name', lon_col)
     az_col = mapping['azimuth']
 
-    df = _clean_coords(df, lon_col, lat_col)
+    total_rows = len(df)
 
-    # 清洗方位角
-    df = df.dropna(subset=[az_col])
-    df[az_col] = pd.to_numeric(df[az_col], errors='coerce')
-    df = df.dropna(subset=[az_col])
-    df = df[(df[az_col] >= 0) & (df[az_col] <= 360)]
+    # 统一清洗：度分秒 + 类型强制 + 空值剔除
+    from engine.data_clean import clean_numeric
+    col_specs = {
+        lon_col: {'kind': 'float', 'lo': -180, 'hi': 180, 'dms': True},
+        lat_col: {'kind': 'float', 'lo': -90, 'hi': 90, 'dms': True},
+        az_col: {'kind': 'int', 'lo': 0, 'hi': 360},
+    }
+    df, stats = clean_numeric(df, col_specs)
 
     if df.empty:
         raise ValueError("无有效方位角数据")
@@ -277,6 +308,20 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
     other_color = extra.get('other_color', '#800080')
     colors = style.get('colors', {1: '#FF0000', 2: '#00FF00', 3: '#0000FF'})
 
+    # 波束宽度/半径（整数）
+    if bw_col and bw_col in df.columns:
+        df['_Beamwidth'] = pd.to_numeric(df[bw_col], errors='coerce').fillna(bw_def).round().astype(int)
+    else:
+        df['_Beamwidth'] = int(bw_def)
+    if r_col and r_col in df.columns:
+        df['_Radius'] = pd.to_numeric(df[r_col], errors='coerce').fillna(r_def).round().astype(int)
+    else:
+        df['_Radius'] = int(r_def)
+    df = df[(df['_Beamwidth'] > 0) & (df['_Radius'] > 0)]
+
+    if df.empty:
+        raise ValueError("无有效扇区数据")
+
     # 扇区编号
     if site_col and site_col in df.columns:
         group_col = site_col
@@ -284,10 +329,9 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
         df['_group_key'] = df.apply(lambda r: f"{r[lon_col]:.6f}_{r[lat_col]:.6f}", axis=1)
         group_col = '_group_key'
 
-    # Assign by original index. Concatenating group results positionally can
-    # attach a sector number to the wrong cell when groupby sorts site keys.
+    # dropna=False：基站标识为空的行也参与分组，避免 astype(int) 崩溃
     sector_numbers = pd.Series(index=df.index, dtype='int64')
-    for _, group in df.groupby(group_col):
+    for _, group in df.groupby(group_col, dropna=False):
         azs = group[az_col].tolist()
         if rule == 1:
             nums = assign_sector_numbers_rule1(azs)
@@ -296,32 +340,44 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
         sector_numbers.loc[group.index] = [int(n) for n in nums]
     df['_SectorNumber'] = sector_numbers.astype(int)
 
-    # 波束宽度和半径
-    df['_Beamwidth'] = pd.to_numeric(df[bw_col], errors='coerce').fillna(bw_def) if bw_col and bw_col in df.columns else bw_def
-    df['_Radius'] = pd.to_numeric(df[r_col], errors='coerce').fillna(r_def) if r_col and r_col in df.columns else r_def
-    df = df[(df['_Beamwidth'] > 0) & (df['_Radius'] > 0)]
-
     alpha = style.get('alpha', 128)
     line_color = style.get('line_color', '#000000')
     line_width = style.get('line_width', 1.0)
 
     ext = os.path.splitext(output_path)[1].lower()
     success = 0
+    total = len(df)
+
+    def _progress(pct, msg):
+        if progress_cb:
+            progress_cb(pct, msg)
+
+    # 顶点生成器缓存（同基站复用 transformer，避免循环内重复创建）
+    gen_cache = {}
+
+    def get_gen(lon, lat):
+        key = (round(lon, 6), round(lat, 6))
+        if key not in gen_cache:
+            gen_cache[key] = make_sector_vertex_generator(lon, lat)
+        return gen_cache[key]
 
     if ext in ('.kml', '.kmz'):
         kml = simplekml.Kml()
         folder = kml.newfolder(name='扇区图层')
 
-        for _, row in df.iterrows():
+        for idx, (_, row) in enumerate(df.iterrows()):
             try:
                 lon, lat = float(row[lon_col]), float(row[lat_col])
-                az, bw, radius = float(row[az_col]), float(row['_Beamwidth']), float(row['_Radius'])
+                az = float(row[az_col])
+                bw = int(row['_Beamwidth'])
+                radius = int(row['_Radius'])
                 sec_num = int(row['_SectorNumber'])
 
                 color_hex = colors.get(sec_num, other_color)
                 kml_color = simplekml.Color.hexa(color_hex[1:] + f'{alpha:02x}')
 
-                verts = sector_polygon_vertices(lon, lat, az, bw, radius)
+                gen = get_gen(lon, lat)
+                verts = gen(az, bw, radius)
                 name = str(row[name_col]) if name_col in row else f"Sector_{success}"
                 pol = folder.newpolygon(name=name, outerboundaryis=verts)
                 pol.style.polystyle.color = kml_color
@@ -331,17 +387,24 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
                 success += 1
             except Exception:
                 continue
+            if idx % max(1, total // 20) == 0:
+                _progress(int(idx / total * 90), f"生成扇区 {idx}/{total}")
 
         _save_kml(kml, output_path)
+        _progress(100, f"完成 {success} 个扇区")
+        _write_clean_log(output_path, stats, total_rows, success)
         return success
 
     elif ext in ('.shp', '.tab'):
         features = []
-        for _, row in df.iterrows():
+        for idx, (_, row) in enumerate(df.iterrows()):
             try:
                 lon, lat = float(row[lon_col]), float(row[lat_col])
-                az, bw, radius = float(row[az_col]), float(row['_Beamwidth']), float(row['_Radius'])
-                verts = sector_polygon_vertices(lon, lat, az, bw, radius)
+                az = float(row[az_col])
+                bw = int(row['_Beamwidth'])
+                radius = int(row['_Radius'])
+                gen = get_gen(lon, lat)
+                verts = gen(az, bw, radius)
                 props = {k: row[k] for k in df.columns
                          if k not in ('_SectorNumber', '_Beamwidth', '_Radius', '_group_key')
                          and not pd.isna(row[k])}
@@ -358,6 +421,8 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
                 success += 1
             except Exception:
                 continue
+            if idx % max(1, total // 20) == 0:
+                _progress(int(idx / total * 90), f"生成扇区 {idx}/{total}")
 
         if ext == '.tab':
             _save_styled_tab(
@@ -368,6 +433,8 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
             )
         else:
             _save_via_fiona({'features': features}, output_path, 'ESRI Shapefile')
+        _progress(100, f"完成 {success} 个扇区")
+        _write_clean_log(output_path, stats, total_rows, success)
         return success
 
     raise ValueError(f"不支持的输出格式: {ext}")
@@ -383,12 +450,17 @@ def generate_drive_layer(df, mapping, style, output_path, do_correct=False, extr
         extra = {}
     lon_col, lat_col = mapping['lon'], mapping['lat']
     level_col = mapping['level']
-    df = _clean_coords(df, lon_col, lat_col)
-    df = df.dropna(subset=[level_col])
-    df[level_col] = pd.to_numeric(df[level_col], errors='coerce')
-    df = df.dropna(subset=[level_col])
+    total_rows = len(df)
+    from engine.data_clean import clean_numeric
+    col_specs = {
+        lon_col: {'kind': 'float', 'lo': -180, 'hi': 180, 'dms': True},
+        lat_col: {'kind': 'float', 'lo': -90, 'hi': 90, 'dms': True},
+        level_col: {'kind': 'float'},
+    }
+    df, stats = clean_numeric(df, col_specs)
     if df.empty:
         raise ValueError("无有效数据")
+    _write_clean_log(output_path, stats, total_rows, len(df))
     if do_correct:
         df = _apply_coord_correction(df, lon_col, lat_col, True)
 
@@ -515,18 +587,22 @@ def generate_grid_layer(df, mapping, style, output_path, do_correct=False, extra
     level_colors = extra.get('level_colors', LEVEL_COLORS_9)
 
     df = _clean_coords(df, lon_col, lat_col)
+    total_rows = len(df)
+    from engine.data_clean import clean_numeric
+    col_specs = {
+        lon_col: {'kind': 'float', 'lo': -180, 'hi': 180, 'dms': True},
+        lat_col: {'kind': 'float', 'lo': -90, 'hi': 90, 'dms': True},
+        level_col: {'kind': 'float'},
+    }
+    df, stats = clean_numeric(df, col_specs)
 
     if grid_id_col and grid_id_col in df.columns:
         # A selected grid id means every input row already represents a grid.
         # Preserve the Excel attribute table exactly in this mode.
         grid_df = df.copy()
-        grid_df[level_col] = pd.to_numeric(grid_df[level_col], errors='coerce')
-        grid_df = grid_df.dropna(subset=[level_col])
     else:
         # Raw MR samples: aggregate many points into a deterministic metre grid.
         grid_df = df.copy()
-        grid_df[level_col] = pd.to_numeric(grid_df[level_col], errors='coerce')
-        grid_df = grid_df.dropna(subset=[level_col])
         if do_correct:
             grid_df = _apply_coord_correction(grid_df, lon_col, lat_col, True)
         grid_df = grid_aggregate(
@@ -541,6 +617,7 @@ def generate_grid_layer(df, mapping, style, output_path, do_correct=False, extra
 
     if grid_df.empty:
         raise ValueError("无有效网格数据")
+    _write_clean_log(output_path, stats, total_rows, len(grid_df))
 
     mid_lat = grid_df[lat_col].mean()
     deg_per_m_lat = 1.0 / 111320.0
@@ -616,16 +693,22 @@ def generate_grid_layer(df, mapping, style, output_path, do_correct=False, extra
 # WKT 线路/面域图层
 # ============================================================
 
-def generate_wkt_layer(df, mapping, style, output_path, do_correct=False, extra=None):
+def generate_wkt_layer(df, mapping, style, output_path, do_correct=False, extra=None, progress_cb=None):
     """
     生成 WKT 图层（线条或面域）
+    progress_cb: callable(percent, message) — 可选进度回调
     """
     wkt_col = mapping.get('wkt_col', 'WKT')
 
     ext = os.path.splitext(output_path)[1].lower()
     features = []
+    total = len(df)
 
-    for _, row in df.iterrows():
+    def _progress(pct, msg):
+        if progress_cb:
+            progress_cb(pct, msg)
+
+    for idx, (_, row) in enumerate(df.iterrows()):
         try:
             wkt_text = str(row[wkt_col])
             geom = parse_wkt(wkt_text)
@@ -647,7 +730,10 @@ def generate_wkt_layer(df, mapping, style, output_path, do_correct=False, extra=
                 feature_style['fill_color'] = style.get('fill_color', '#74b9ff')
             features.append({'geometry': geom, 'properties': props, 'style': feature_style})
         except Exception:
-            continue
+            pass
+        finally:
+            if idx % max(1, total // 20) == 0:
+                _progress(int(idx / total * 90), f"解析 WKT {idx}/{total}")
 
     if not features:
         raise ValueError("无有效的 WKT 几何数据")
@@ -712,6 +798,7 @@ def generate_wkt_layer(df, mapping, style, output_path, do_correct=False, extra=
                         pol.style.linestyle.width = line_width
 
         _save_kml(kml, output_path)
+        _progress(100, f"完成 {len(features)} 个要素")
         return len(features)
 
     elif ext in ('.shp', '.tab'):
@@ -724,6 +811,7 @@ def generate_wkt_layer(df, mapping, style, output_path, do_correct=False, extra=
             )
         else:
             _save_via_fiona({'features': features}, output_path, 'ESRI Shapefile')
+        _progress(100, f"完成 {len(features)} 个要素")
         return len(features)
 
     raise ValueError(f"不支持的输出格式: {ext}")

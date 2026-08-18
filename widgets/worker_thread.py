@@ -46,13 +46,27 @@ class GenerateWorker(QThread):
             if out_dir:
                 os.makedirs(out_dir, exist_ok=True)
 
+            # 预估时间（粗估，提醒用户耐心等待）
+            n_rows = len(self.df) if self.df is not None else 0
+            if n_rows > 0:
+                if self.layer_type in ('drive', 'grid'):
+                    est_sec = max(2, n_rows // 20000)
+                else:
+                    est_sec = max(2, n_rows // 500)
+                if est_sec >= 60:
+                    est_txt = f"约 {est_sec // 60} 分钟"
+                else:
+                    est_txt = f"约 {est_sec} 秒"
+                self._report(1, f"共 {n_rows} 行，预计 {est_txt}，请耐心等待，不要关闭程序")
+
             if self.layer_type == 'site':
                 count = generate_site_layer(self.df, self.mapping, self.style,
                                             self.output_path, self.do_correct,
                                             progress_cb=self._report)
             elif self.layer_type == 'sector':
                 count = generate_sector_layer(self.df, self.mapping, self.style,
-                                              self.output_path, self.do_correct, self.extra)
+                                              self.output_path, self.do_correct, self.extra,
+                                              progress_cb=self._report)
             elif self.layer_type == 'drive':
                 count = generate_drive_layer(self.df, self.mapping, self.style,
                                              self.output_path, self.do_correct,
@@ -63,7 +77,8 @@ class GenerateWorker(QThread):
                                             self.extra, progress_cb=self._report)
             elif self.layer_type in ('line', 'polygon'):
                 count = generate_wkt_layer(self.df, self.mapping, self.style,
-                                           self.output_path, self.do_correct, self.extra)
+                                           self.output_path, self.do_correct, self.extra,
+                                           progress_cb=self._report)
             else:
                 self.error.emit(f"未知图层类型: {self.layer_type}")
                 return
