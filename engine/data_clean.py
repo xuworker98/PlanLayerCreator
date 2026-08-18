@@ -64,6 +64,12 @@ def clean_numeric(df, col_specs):
     stats = []
     total = len(df)
 
+    # 清洗所有字符串列的控制字符（防 XML 非法字符，如 \x0b、\x1f）
+    _CTRL = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+    for c in df.columns:
+        if df[c].dtype == object:
+            df[c] = df[c].map(lambda v: _CTRL.sub('', str(v)) if pd.notna(v) else v)
+
     for col, spec in col_specs.items():
         if col not in df.columns:
             continue

@@ -133,20 +133,17 @@ def mif_to_tab(mif_path: str, tab_path: str, encoding: str = "CP936") -> None:
     )
 
 
-def _legacy_cp936_pair(utf8_mif: str, target_mif: str) -> None:
-    """Transcode the internal UTF-8 MIF/MID pair for legacy MapInfo import."""
-    with open(utf8_mif, "r", encoding="utf-8") as source:
+def _legacy_cp936_pair(gbk_mif: str, target_mif: str) -> None:
+    """Prepare the GBK MIF/MID pair for legacy MapInfo import (Version 300)."""
+    with open(gbk_mif, "r", encoding="gbk") as source:
         header_and_geometry = source.read()
     header_and_geometry = header_and_geometry.replace("Version 1520", "Version 300", 1)
-    header_and_geometry = header_and_geometry.replace(
-        'Charset "UTF-8"', 'Charset "WindowsSimpChinese"', 1
-    )
     with open(target_mif, "w", encoding="gbk", newline="") as target:
         target.write(header_and_geometry)
 
-    source_mid = os.path.splitext(utf8_mif)[0] + ".mid"
+    source_mid = os.path.splitext(gbk_mif)[0] + ".mid"
     target_mid = os.path.splitext(target_mif)[0] + ".mid"
-    with open(source_mid, "r", encoding="utf-8", newline="") as source:
+    with open(source_mid, "r", encoding="gbk", newline="") as source:
         mid_text = source.read()
     with open(target_mid, "w", encoding="gbk", newline="") as target:
         target.write(mid_text)

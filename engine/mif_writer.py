@@ -32,7 +32,7 @@ def write_grid_mif_fast(grid_df, lon_col, lat_col, level_col,
     chunk_size = 20000
     total_chunks = (n + chunk_size - 1) // chunk_size
 
-    with open(mif_path, "w", encoding="utf-8", newline="") as f:
+    with open(mif_path, "w", encoding="gbk", errors="replace", newline="") as f:
         f.write(header)
         for ci in range(total_chunks):
             start = ci * chunk_size
@@ -65,7 +65,7 @@ def write_grid_mif_fast(grid_df, lon_col, lat_col, level_col,
 
 
 def _mif_header(col_defs):
-    h = "Version 1520" + RN + "Charset " + chr(34) + "UTF-8" + chr(34) + RN
+    h = "Version 1520" + RN + "Charset " + chr(34) + "WindowsSimpChinese" + chr(34) + RN
     h += "Delimiter " + chr(34) + "," + chr(34) + RN
     h += "CoordSys Earth Projection 1, 0" + RN
     h += "Columns {}".format(len(col_defs)) + RN
@@ -101,7 +101,7 @@ def _map_colors(values, level_colors):
 
 
 def _write_mid_bytes(df, columns, mid_path, n, chunk_size):
-    with open(mid_path, "w", encoding="utf-8", newline="") as stream:
+    with open(mid_path, "w", encoding="gbk", errors="replace", newline="") as stream:
         writer = csv.writer(stream, delimiter=",", quotechar='"', lineterminator=RN)
         for row in df[columns].itertuples(index=False, name=None):
             writer.writerow([_mid_value(value) for value in row])

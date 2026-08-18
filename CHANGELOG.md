@@ -2,6 +2,13 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)（Semantic Versioning）。
 
+## [1.1.2] - 2026-08-18
+
+### 修复
+- 扇区 KML/KMZ 报错：字段值含非法 XML 控制字符时清洗，避免 not well-formed
+- 扇区 TAB 着色错误：编号改为始终按经纬度分组（不依赖基站标识），填/不填结果一致
+- MIF 字符集：输出改 GBK + WindowsSimpChinese，MapInfo 2012 可直接打开
+
 ## [1.1.1] - 2026-08-18
 
 ### 修复

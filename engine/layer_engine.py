@@ -42,16 +42,23 @@ def _add_ext_data(pm, row, exclude_cols=None):
     """添加 ExtendedData + HTML description 到 KML Placemark"""
     if exclude_cols is None:
         exclude_cols = set()
+    import re
+    _CTRL = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
     # 构建 HTML 表格
     html_parts = ['<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse">']
     html_parts.append('<tr style="background:#0984e3;color:white"><th>字段</th><th>值</th></tr>')
     for col, val in row.items():
         if col in exclude_cols:
             continue
+        col_str = _CTRL.sub('', str(col))
         if pd.isna(val):
             val = ''
-        html_parts.append(f'<tr><td>{col}</td><td>{val}</td></tr>')
-        pm.extendeddata.newdata(name=str(col), value=str(val), displayname=str(col))
+        else:
+            val = str(val)
+            val = _CTRL.sub('', val)            # 移除非法 XML 控制字符
+            val = val.replace(']]>', ']]&gt;')   # 防止破坏 CDATA
+        html_parts.append(f'<tr><td>{col_str}</td><td>{val}</td></tr>')
+        pm.extendeddata.newdata(name=col_str, value=val, displayname=col_str)
     html_parts.append('</table>')
     pm.description = '<![CDATA[' + '\n'.join(html_parts) + ']]>'
 
@@ -322,16 +329,13 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
     if df.empty:
         raise ValueError("无有效扇区数据")
 
-    # 扇区编号
-    if site_col and site_col in df.columns:
-        group_col = site_col
-    else:
-        df['_group_key'] = df.apply(lambda r: f"{r[lon_col]:.6f}_{r[lat_col]:.6f}", axis=1)
-        group_col = '_group_key'
+    # 扇区编号：始终按经纬度分组（同一位置的扇区归一组），组内按方位角排序编号
+    # 不依赖基站标识，保证填/不填基站标识结果一致
+    df['_group_key'] = df.apply(lambda r: f"{r[lon_col]:.6f}_{r[lat_col]:.6f}", axis=1)
+    group_col = '_group_key'
 
-    # dropna=False：基站标识为空的行也参与分组，避免 astype(int) 崩溃
     sector_numbers = pd.Series(index=df.index, dtype='int64')
-    for _, group in df.groupby(group_col, dropna=False):
+    for _, group in df.groupby(group_col):
         azs = group[az_col].tolist()
         if rule == 1:
             nums = assign_sector_numbers_rule1(azs)

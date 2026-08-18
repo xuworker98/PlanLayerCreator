@@ -156,7 +156,7 @@ def _style_text(style, geometry):
 
 
 def write_styled_mif(features, mif_path, progress_cb=None):
-    """Write UTF-8 MIF/MID. UTF-8 is intentional: GDAL then recodes to CP936."""
+    """Write GBK MIF/MID (WindowsSimpChinese) so MapInfo 2012 can open directly."""
     if not features:
         raise ValueError("没有可写入的图层要素")
     fields = _field_map(features)
@@ -167,9 +167,9 @@ def write_styled_mif(features, mif_path, progress_cb=None):
     definitions = [(safe, _column_type(values[original])) for original, safe in fields.items()]
     mid_path = os.path.splitext(mif_path)[0] + ".mid"
 
-    with open(mif_path, "w", encoding="utf-8", newline="") as mif:
+    with open(mif_path, "w", encoding="gbk", errors="replace", newline="") as mif:
         mif.write("Version 1520" + RN)
-        mif.write('Charset "UTF-8"' + RN)
+        mif.write('Charset "WindowsSimpChinese"' + RN)
         mif.write('Delimiter ","' + RN)
         mif.write("CoordSys Earth Projection 1, 0" + RN)
         mif.write(f"Columns {len(definitions)}" + RN)
@@ -184,7 +184,7 @@ def write_styled_mif(features, mif_path, progress_cb=None):
             if progress_cb and (index == total or index % 20000 == 0):
                 progress_cb(10 + int(index / total * 65), f"MapInfo 几何 {index:,}/{total:,}")
 
-    with open(mid_path, "w", encoding="utf-8", newline="") as mid:
+    with open(mid_path, "w", encoding="gbk", errors="replace", newline="") as mid:
         writer = csv.writer(mid, delimiter=",", quotechar='"', lineterminator=RN)
         total = len(features)
         for index, feature in enumerate(features, 1):
@@ -246,8 +246,8 @@ def write_point_dataframe_mif(df, lon_col, lat_col, color_values, mif_path,
     total = len(df)
     chunk_size = 20000
 
-    with open(mif_path, "w", encoding="utf-8", newline="") as mif:
-        mif.write("Version 1520" + RN + 'Charset "UTF-8"' + RN)
+    with open(mif_path, "w", encoding="gbk", errors="replace", newline="") as mif:
+        mif.write("Version 1520" + RN + 'Charset "WindowsSimpChinese"' + RN)
         mif.write('Delimiter ","' + RN + "CoordSys Earth Projection 1, 0" + RN)
         mif.write(f"Columns {len(definitions)}" + RN)
         for name, datatype in definitions:
@@ -265,7 +265,7 @@ def write_point_dataframe_mif(df, lon_col, lat_col, color_values, mif_path,
             if progress_cb:
                 progress_cb(10 + int(end / total * 60), f"路测几何 {end:,}/{total:,}")
 
-    with open(mid_path, "w", encoding="utf-8", newline="") as mid:
+    with open(mid_path, "w", encoding="gbk", errors="replace", newline="") as mid:
         writer = csv.writer(mid, delimiter=",", quotechar='"', lineterminator=RN)
         for index, row in enumerate(df.itertuples(index=False, name=None), 1):
             writer.writerow([_mid_value(value) for value in row])
