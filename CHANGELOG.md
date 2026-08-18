@@ -2,6 +2,13 @@
 
 本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)（Semantic Versioning）。
 
+## [1.1.4] - 2026-08-19
+
+### 修复（真正的根因）
+- KML/KMZ 报 not well-formed：simplekml 的 Data.value 不转义 `&` `<` `>`，
+  字段值含 `&`（如"B1F&5栋B1F"）时 Google 地球解析失败。
+  修复：_add_ext_data 对 value 做 XML 转义（name/displayName 本就由 simplekml 转义）
+
 ## [1.1.3] - 2026-08-18
 
 ### 修复

@@ -43,6 +43,7 @@ def _add_ext_data(pm, row, exclude_cols=None):
     if exclude_cols is None:
         exclude_cols = set()
     import re
+    from xml.sax.saxutils import escape as _xml_escape
     _CTRL = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
     # 构建 HTML 表格
     html_parts = ['<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse">']
@@ -55,8 +56,8 @@ def _add_ext_data(pm, row, exclude_cols=None):
             val = ''
         else:
             val = str(val)
-            val = _CTRL.sub('', val)            # 移除非法 XML 控制字符
-            val = val.replace(']]>', ']]&gt;')   # 防止破坏 CDATA
+            val = _CTRL.sub('', val)       # 移除非法 XML 控制字符
+            val = _xml_escape(val)          # 转义 & < >（simplekml 的 Data.value 不转义，必须手动）
         html_parts.append(f'<tr><td>{col_str}</td><td>{val}</td></tr>')
         pm.extendeddata.newdata(name=col_str, value=val, displayname=col_str)
     html_parts.append('</table>')
