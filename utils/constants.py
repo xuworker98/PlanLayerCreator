@@ -72,7 +72,7 @@ OUTPUT_FORMATS = ['KMZ (压缩推荐)', 'KML (未压缩)', 'TAB (MapInfo)', 'SHP
 # ============================================================
 WINDOW_MIN_WIDTH = 1024
 WINDOW_MIN_HEIGHT = 630
-WINDOW_TITLE = '通信规划图层生成器（PlanLayerCreator）V1.1'
+WINDOW_TITLE = '通信规划图层生成工具（PlanLayerCreator）V1.2'
 APP_AUTHOR = '通信民工'
 APP_QQ = '853665220'
 APP_WECHAT = '通信民工'

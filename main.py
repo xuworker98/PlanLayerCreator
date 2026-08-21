@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-通信规划图层生成器（PlanLayerCreator）V1.1
+通信规划图层生成工具（PlanLayerCreator）V1.2
 作者：通信民工 | 关注【通信民工】公众号 | QQ: 853665220
 """
 import sys
@@ -22,7 +22,7 @@ from utils.constants import (
     WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT, WINDOW_TITLE, STATUS_RIGHT
 )
 
-VERSION = "1.1"
+VERSION = "1.2"
 
 
 class MainWindow(QMainWindow):

@@ -42,8 +42,12 @@ class HelpTab(QWidget):
         footer.addStretch(1)
 
         footer_text = QLabel(
-            "<div style='color:#636e72; font-size:12px; line-height:150%;'>"
-            "扫码关注公众号<br><b style='color:#2d3436;'>ComDesigner（通信民工）</b>"
+            "<div style='color:#636e72; font-size:12px; line-height:160%;'>"
+            "作者：通信民工<br>"
+            "QQ：853665220（@qq.com）<br>"
+            "网站：http://www.txmg.com<br>"
+            "微信公众号：@通信民工<br>"
+            "<b style='color:#2d3436;'>扫码关注 | 合作交流</b>"
             "</div>"
         )
         footer_text.setTextFormat(Qt.RichText)
@@ -143,7 +147,7 @@ class HelpTab(QWidget):
 </style>
 </head>
 <body>
-  <h1>通信规划图层生成工具（PlanLayerCreator）V1.1</h1>
+  <h1>通信规划图层生成工具（PlanLayerCreator）V1.2</h1>
   <p class="subtitle">作者：通信民工　|　QQ：853665220　|　公众号：ComDesigner（通信民工）</p>
 
   <div class="lead">

@@ -429,6 +429,9 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
                 pol.style.polystyle.color = kml_color
                 pol.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
                 pol.style.linestyle.width = line_width
+                if add_label:
+                    pol.style.labelstyle.scale = 1  # 显示标签（否则 Polygon 无标签）
+                    pol.style.labelstyle.color = simplekml.Color.black  # 标签黑色
                 _add_ext_data(pol, row, exclude_cols={'_SectorNumber', '_Beamwidth', '_Radius', '_group_key'})
                 success += 1
             except Exception:
