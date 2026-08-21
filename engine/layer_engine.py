@@ -351,6 +351,7 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
     r_col = extra.get('r_col', '')
     site_col = extra.get('site_col', '')
     other_color = extra.get('other_color', '#800080')
+    add_label = extra.get('add_label', True)
     colors = style.get('colors', {1: '#FF0000', 2: '#00FF00', 3: '#0000FF'})
 
     # 波束宽度/半径（整数）
@@ -420,7 +421,10 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
 
                 gen = get_gen(lon, lat)
                 verts = gen(az, bw, radius)
-                name = str(row[name_col]) if name_col in row else f"Sector_{success}"
+                if add_label:
+                    name = str(row[name_col]) if name_col in row else f"Sector_{success}"
+                else:
+                    name = None
                 pol = folder.newpolygon(name=name, outerboundaryis=verts)
                 pol.style.polystyle.color = kml_color
                 pol.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')

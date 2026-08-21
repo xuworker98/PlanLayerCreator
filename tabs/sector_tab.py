@@ -174,6 +174,15 @@ class SectorTab(BaseTab):
         row3 = self._add_style_item(row3, "边框宽度：", self.line_width_spin, last=True)
         row3.addStretch()
         layout.addLayout(row3)
+
+        # 第四行：标签开关
+        row4 = QHBoxLayout()
+        self.label_checkbox = QCheckBox("添加小区名称标签（仅 KML/KMZ）")
+        self.label_checkbox.setChecked(True)  # 默认勾选
+        row4.addWidget(self.label_checkbox)
+        row4.addStretch()
+        layout.addLayout(row4)
+
         style_group.setLayout(layout)
         return style_group
 
@@ -241,6 +250,7 @@ class SectorTab(BaseTab):
             'r_col': self.radius_combo.currentText() if self.radius_combo else '',
             'other_color': self.style['other_color'],
             'site_col': self.site_id_combo.currentText() if self.site_id_combo else '',
+            'add_label': self.label_checkbox.isChecked(),
         }
 
     def generate(self):
