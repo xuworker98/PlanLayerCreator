@@ -352,6 +352,7 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
     site_col = extra.get('site_col', '')
     other_color = extra.get('other_color', '#800080')
     add_label = extra.get('add_label', True)
+    label_color = extra.get('label_color', '#FFFF00')
     colors = style.get('colors', {1: '#FF0000', 2: '#00FF00', 3: '#0000FF'})
 
     # 波束宽度/半径（整数）
@@ -435,8 +436,8 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
                     geom.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
                     geom.style.linestyle.width = line_width
                     geom.style.iconstyle.scale = 0  # 隐藏点图标，只留标签
-                    geom.style.labelstyle.scale = 1
-                    geom.style.labelstyle.color = simplekml.Color.black
+                    geom.style.labelstyle.scale = 1.2  # 放大 20%，更清晰
+                    geom.style.labelstyle.color = simplekml.Color.hexa(label_color[1:] + 'ff')
                     _add_ext_data(geom, row, exclude_cols={'_SectorNumber', '_Beamwidth', '_Radius', '_group_key'})
                 else:
                     pol = folder.newpolygon(name=name, outerboundaryis=verts)

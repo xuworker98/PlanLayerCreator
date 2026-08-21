@@ -36,6 +36,7 @@ class SectorTab(BaseTab):
             'alpha': SECTOR_DEFAULT_ALPHA,
             'line_color': SECTOR_DEFAULT_LINE_COLOR,
             'line_width': SECTOR_DEFAULT_LINE_WIDTH,
+            'label_color': '#FFFF00',
             'rule': 2,
         }
 
@@ -175,11 +176,18 @@ class SectorTab(BaseTab):
         row3.addStretch()
         layout.addLayout(row3)
 
-        # 第四行：标签开关
+        # 第四行：标签开关 + 标签颜色
         row4 = QHBoxLayout()
         self.label_checkbox = QCheckBox("添加小区名称标签（仅 KML/KMZ）")
         self.label_checkbox.setChecked(True)  # 默认勾选
         row4.addWidget(self.label_checkbox)
+        row4.addSpacing(24)
+        self.label_color_btn = QPushButton()
+        self.label_color_btn.setFixedSize(36, 18)
+        self.label_color_btn.setStyleSheet(f"background:{self.style['label_color']};border:1px solid #dcdde1;border-radius:2px;")
+        self.label_color_btn.clicked.connect(self.pick_label_color)
+        row4.addWidget(QLabel("标签颜色："))
+        row4.addWidget(self.label_color_btn)
         row4.addStretch()
         layout.addLayout(row4)
 
@@ -216,6 +224,12 @@ class SectorTab(BaseTab):
             self.style['line_color'] = c.name()
             self.line_color_btn.setStyleSheet(f"background:{c.name()};border:1px solid #dcdde1;border-radius:2px;")
 
+    def pick_label_color(self):
+        c = QColorDialog.getColor(QColor(self.style['label_color']), self, "标签颜色")
+        if c.isValid():
+            self.style['label_color'] = c.name()
+            self.label_color_btn.setStyleSheet(f"background:{c.name()};border:1px solid #dcdde1;border-radius:2px;")
+
     # ====== 通用 ======
 
     def update_field_combos(self):
@@ -251,6 +265,7 @@ class SectorTab(BaseTab):
             'other_color': self.style['other_color'],
             'site_col': self.site_id_combo.currentText() if self.site_id_combo else '',
             'add_label': self.label_checkbox.isChecked(),
+            'label_color': self.style['label_color'],
         }
 
     def generate(self):
