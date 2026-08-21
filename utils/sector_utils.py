@@ -82,6 +82,16 @@ def make_sector_vertex_generator(lon, lat):
         vertices.append((lon, lat))  # 闭合
         return vertices
 
+    def label_position(azimuth, radius_m):
+        """标签位置：方位角方向、半径一半处（扇区内部，避免同基站标签重叠）"""
+        rad = math.radians(90 - azimuth)
+        d = radius_m * 0.5
+        dx = d * math.cos(rad)
+        dy = d * math.sin(rad)
+        glon, glat = to_wgs.transform(x0 + dx, y0 + dy)
+        return glon, glat
+
+    gen.label_position = label_position
     return gen
 
 

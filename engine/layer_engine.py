@@ -425,14 +425,25 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
                     name = str(row[name_col]) if name_col in row else f"Sector_{success}"
                 else:
                     name = None
-                pol = folder.newpolygon(name=name, outerboundaryis=verts)
-                pol.style.polystyle.color = kml_color
-                pol.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
-                pol.style.linestyle.width = line_width
                 if add_label:
-                    pol.style.labelstyle.scale = 1  # 显示标签（否则 Polygon 无标签）
-                    pol.style.labelstyle.color = simplekml.Color.black  # 标签黑色
-                _add_ext_data(pol, row, exclude_cols={'_SectorNumber', '_Beamwidth', '_Radius', '_group_key'})
+                    # MultiGeometry: Polygon(面) + Point(标签位置)，确保 Google 地球显示标签
+                    geom = folder.newmultigeometry(name=name)
+                    glon, glat = gen.label_position(az, radius)
+                    geom.newpoint(coords=[(glon, glat)])  # Point 放前面，标签显示在 Point 上
+                    poly = geom.newpolygon(outerboundaryis=verts)
+                    geom.style.polystyle.color = kml_color
+                    geom.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
+                    geom.style.linestyle.width = line_width
+                    geom.style.iconstyle.scale = 0  # 隐藏点图标，只留标签
+                    geom.style.labelstyle.scale = 1
+                    geom.style.labelstyle.color = simplekml.Color.black
+                    _add_ext_data(geom, row, exclude_cols={'_SectorNumber', '_Beamwidth', '_Radius', '_group_key'})
+                else:
+                    pol = folder.newpolygon(name=name, outerboundaryis=verts)
+                    pol.style.polystyle.color = kml_color
+                    pol.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
+                    pol.style.linestyle.width = line_width
+                    _add_ext_data(pol, row, exclude_cols={'_SectorNumber', '_Beamwidth', '_Radius', '_group_key'})
                 success += 1
             except Exception:
                 continue

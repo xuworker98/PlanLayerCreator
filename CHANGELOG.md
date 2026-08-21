@@ -9,7 +9,8 @@
   控制 KML/KMZ 是否在扇区上显示小区名称标签
 
 ### 修复
-- 扇区标签不显示：显式设置 LabelStyle（scale=1 + 黑色），Google 地球正常显示 Polygon 标签
+- 扇区标签不显示：改用 MultiGeometry（Polygon 面 + Point 标签点），
+  标签显示在扇区内部（方位角方向、半径一半处），Google 地球可靠显示黑色标签
 
 ### 其他
 - 软件名称更新为「通信规划图层生成工具（PlanLayerCreator）V1.2」
