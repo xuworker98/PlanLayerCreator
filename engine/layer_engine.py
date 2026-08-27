@@ -15,12 +15,6 @@ from utils.sector_utils import assign_sector_numbers_rule1, assign_sector_number
 from utils.wkt_parser import parse_wkt
 from utils.constants import LEVEL_COLORS_9
 
-# 1×1 透明 PNG（data URI），用于隐藏标签点的图钉图标
-_TRANSPARENT_PNG = (
-    'data:image/png;base64,'
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
-)
-
 
 # ============================================================
 # 通用方法
@@ -416,6 +410,17 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
         folder_sectors = kml.newfolder(name='扇区')
         folder_labels = kml.newfolder(name='标签') if add_label else None
 
+        # 标签共享 Style：空 <Icon/>（无 href）→ Google Earth 与奥维均不显示图钉
+        label_style = None
+        if add_label:
+            label_style = simplekml.Style()
+            label_style.iconstyle.icon.href = None  # 空 Icon，无图钉
+            label_style.labelstyle.scale = 1.2
+            label_style.labelstyle.color = simplekml.Color.hexa(label_color[1:] + 'ff')
+
+        # 扇区面共享 Style：按填充色缓存复用（同色扇区共用一个 Style）
+        poly_style_cache = {}
+
         for idx, (_, row) in enumerate(df.iterrows()):
             try:
                 lon, lat = float(row[lon_col]), float(row[lat_col])
@@ -427,25 +432,28 @@ def generate_sector_layer(df, mapping, style, output_path, do_correct=False, ext
                 color_hex = colors.get(sec_num, other_color)
                 kml_color = simplekml.Color.hexa(color_hex[1:] + f'{alpha:02x}')
 
+                poly_style = poly_style_cache.get(kml_color)
+                if poly_style is None:
+                    poly_style = simplekml.Style()
+                    poly_style.polystyle.color = kml_color
+                    poly_style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
+                    poly_style.linestyle.width = line_width
+                    poly_style_cache[kml_color] = poly_style
+
                 gen = get_gen(lon, lat)
                 verts = gen(az, bw, radius)
                 name = str(row[name_col]) if name_col in row else f"Sector_{success}"
 
-                # 扇区面 → "扇区"文件夹（name 保留作气泡标题，Polygon 不显示标签）
+                # 扇区面 → "扇区"文件夹（name 保留作气泡标题）
                 pol = folder_sectors.newpolygon(name=name, outerboundaryis=verts)
-                pol.style.polystyle.color = kml_color
-                pol.style.linestyle.color = simplekml.Color.hexa(line_color[1:] + 'ff')
-                pol.style.linestyle.width = line_width
+                pol.style = poly_style
                 _add_ext_data(pol, row, exclude_cols={'_SectorNumber', '_Beamwidth', '_Radius', '_group_key'})
 
-                # 标签 → "标签"文件夹（Point，透明图标，纯文字）
+                # 标签 → "标签"文件夹（Point，空 Icon，纯文字）
                 if add_label:
                     glon, glat = gen.label_position(az, radius)
                     pnt = folder_labels.newpoint(name=name, coords=[(glon, glat)])
-                    pnt.style.iconstyle.scale = 0  # 双保险 1：Google Earth 隐藏图标
-                    pnt.style.iconstyle.icon.href = _TRANSPARENT_PNG  # 双保险 2：透明图标（奥维）
-                    pnt.style.labelstyle.scale = 1.2
-                    pnt.style.labelstyle.color = simplekml.Color.hexa(label_color[1:] + 'ff')
+                    pnt.style = label_style
 
                 success += 1
             except Exception:
