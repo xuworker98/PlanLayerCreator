@@ -106,4 +106,13 @@ This project is licensed under [CC BY-NC 4.0](LICENSE) (Attribution-NonCommercia
 - **哔哩哔哩 Bilibili**：@通信民工（UID：482597398）
 - **微信公众号 WeChat**：@通信民工（ComDesigner）
 - **QQ**：853665220（@qq.com）
+- **网站 Website**：[http://www.txmg.com](http://www.txmg.com)
 - **著作 Book**：《5G网络规划与工程实践》（清华大学出版社出版，当当、京东、淘宝等平台均可购买）
+
+### 微信公众号二维码 / WeChat QR Code
+
+扫描下方二维码关注微信公众号“通信民工（ComDesigner）”。
+
+Scan the QR code below to follow the WeChat official account “通信民工（ComDesigner）”.
+
+![微信公众号二维码 / WeChat QR Code](res/qrcode.jpg)
