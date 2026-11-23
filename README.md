@@ -1,56 +1,145 @@
-﻿# 通信规划图层生成工具 · PlanLayerCreator V2.0
+# 通信规划图层生成工具 · PlanLayerCreator V2.0
 
-面向通信规划、无线优化与网络维护的 Windows GIS 图层生成器。将 Excel、CSV、TXT 数据转换为站点、扇区、路测、MR 栅格、线路和面域图层，支持 KML、KMZ、TAB、SHP，路测及栅格另支持 MIF。
+**PlanLayerCreator — Communication Planning GIS Layer Generator**
 
-支持字段匹配、坐标纠偏、分级配色及中文属性；路测与栅格 KML/KMZ 支持图例。V2.0 修复 TAB 输出与 MIF 数量核验，面域默认无填充，制作页面保持单屏布局。
+一款面向通信规划、无线优化和网络维护人员的桌面 GIS 图层生成工具。将 Excel、CSV 或 TXT 数据快速生成站点、扇区、路测、MR 栅格、线路和面域等 GIS 图层，可用于 Google Earth、MapInfo、QGIS、ArcGIS 等软件的浏览、制图与数据交换。
 
-- [功能及格式说明](src/README.md)
-- [更新记录](src/CHANGELOG.md)
-- [V2.0 使用说明书](docs/说明书_通信规划图层生成工具（PlanLayerCreator）_V2.0.docx)
-- [许可证：CC BY-NC 4.0](LICENSE)
+A desktop GIS layer generator for telecom planning, RF optimization, and network maintenance. Convert Excel/CSV/TXT data into GIS layers (sites, sectors, drive tests, MR grids, polylines, polygons) for Google Earth, MapInfo, QGIS, and ArcGIS.
 
-## 从 GitHub 获取并运行
+> ⚠️ **界面语言 / UI Language**：本软件界面为**简体中文**（Simplified Chinese only）。英文读者可通过本 README 了解功能与使用方法。
+> The application UI is **Simplified Chinese only**. English readers can learn about features and usage from this README.
 
-源码和打包配置位于 `src`。需要 Windows x64、Python 3.12：
+---
+
+## ✨ 主要功能及特点 / Features
+
+### 图层制作能力 / Layer Types
+
+| 图层 | 用途 | 必需数据 |
+|------|------|---------|
+| 站点 Site | 按经纬度生成点位，可设图标、标签颜色及大小 | 经度、纬度、站点名称 |
+| 扇区 Sector | 按方位角生成扇形面，可设波束宽度、覆盖半径与填充边框 | 经度、纬度、名称、方位角 |
+| 路测 Drive Test | 按 RSRP/RSSI 等电平分级显示海量采样点 | 经度、纬度、测量电平 |
+| MR 栅格 Grid | 按实际米制网格聚合样本或直接使用已有栅格编号 | 经度、纬度、测量电平 |
+| 线路 Line | 解析 LINESTRING/MULTILINESTRING WKT 并设置线型 | WKT 几何列 |
+| 面域 Polygon | 解析 POLYGON/MULTIPOLYGON WKT 并设置填充及边框 | WKT 几何列 |
+
+### 重点增强能力 / Key Enhancements
+
+- **原生着色 TAB Native-colored TAB**：点、扇区、线路、面域、路测和栅格的 Symbol、Pen、Brush 样式可直接写入 TAB，不再依赖手工 MIF 转换。
+- **中文属性 Chinese Attributes**：TAB 保留中文字段名和中文数据，仅对 MapInfo 不允许的符号或超长字段名做最小调整，并生成字段名对照文件。
+- **标签工作空间 Label Workspace**：需要自动标签时同步生成同名 `.wor`，打开即可恢复标签字段、颜色和地图窗口状态。
+- **轻量 KML/KMZ Lightweight KML/KMZ**：路测和 MR 栅格仅保留所选电平值，避免完整 Excel 属性在每个对象中重复写入。
+- **大数据分片 Tiled Loading**：超大路测 KMZ 自动分区，通过 NetworkLink 按视野加载，降低 Google Earth 首次打开压力。
+- **稳定聚合 Stable Aggregation**：MR 原始样本在 UTM 投影中按实际米数聚合，可选平均值或中位数，并过滤样本数不足的网格。
+- **坐标纠偏 Coordinate Correction**：GCJ-02 → WGS84 一键纠偏。
+
+### V2.0 更新 / V2.0 Updates
+
+- **自定义分档与图例 Classification & Legends**：路测、MR 栅格支持编辑分档颜色及区间边界；KML/KMZ 支持导出图例，KMZ 内嵌资源，KML 须连同配套图片一起携带。
+- **填充与边框 Fill & Outline**：栅格支持无填充、无边框、边框宽度与颜色；面域默认无填充，可手动恢复。填充透明度按输出格式支持情况启用。
+- **输出核验 Validated Output**：修复 TAB 输出及 MIF 数量核验；同名成果自动另存，结果日志汇总输入、输出、数量、用时及问题结论。
+- **大数据与界面 Performance & UI**：优化栅格 SHP 输出；制作页面保持单屏、控件靠左，仅使用帮助保留页面滚动条。
+
+完整记录见 [CHANGELOG](src/CHANGELOG.md)，使用方法见 [V2.0 使用说明书](docs/说明书_通信规划图层生成工具（PlanLayerCreator）_V2.0.docx)。
+
+## 🖼️ 软件截图 / Screenshots
+
+![主界面](src/screenshots/main.png)
+
+*截图沿用历史版本，当前界面以 V2.0 实际软件为准。*
+
+*更多截图见 [src/screenshots/](src/screenshots/) 目录。*
+
+## 📁 支持格式 / Supported Formats
+
+| 图层类型 | KML/KMZ | TAB | SHP | MIF |
+|---------|:---:|:---:|:---:|:---:|
+| 站点 Site | ✅ 着色 | ✅ 符号 | ✅ | — |
+| 扇区 Sector | ✅ 填充 | ✅ Brush/Pen | ✅ | — |
+| 路测 Drive Test | ✅ 分级点色 | ✅ 分级 Symbol | ✅ | ✅ |
+| MR 栅格 Grid | ✅ 分级面色 | ✅ Brush/Pen | ✅ | ✅ |
+| 线路 Line | ✅ 样式 | ✅ Pen | ✅ | — |
+| 面域 Polygon | ✅ 填充 | ✅ Brush/Pen | ✅ | — |
+
+**说明 / Notes**：
+- TAB 输出为同名文件组（.tab/.dat/.map/.id），须整体交付。
+- V2.0 统一使用内置运行库生成 TAB，不依赖本机 MapInfo，面向 MapInfo 15.2+。
+- SHP 标准不存渲染样式，路测/MR 附同名 QML 供 QGIS 使用。
+
+## 🚀 快速开始 / Quick Start
+
+1. 从 [Releases](https://github.com/xuworker98/PlanLayerCreator/releases) 下载 `PlanLayerCreator.exe`
+2. 双击运行（无需安装 Python，支持 Windows 10/11 x64）
+3. 选择图层类型 → 导入数据 → 映射字段 → 设置样式 → 生成
+
+### 数据要求 / Data Requirements
+
+- 第一行为字段名称；站点、扇区、路测及原始 MR 样本需提供**经度列**和**纬度列**
+- 线路与面域使用 WKT 几何列，具体字段要求见上方图层表
+- 栅格/路测图层额外需要**电平值列**（如 RSRP）
+- 扇区图层额外需要**方位角列**
+- 经纬度须为十进制度数（如 116.397128），不支持度分秒
+- 样例数据见 [`src/data/`](src/data/) 目录
+
+## 🧪 开发者 / For Developers
+
+源码位于 `src`，使用 Windows x64 和 CPython 3.12。在仓库根目录打开 PowerShell：
 
 ```powershell
+# 创建项目虚拟环境并安装固定版本依赖
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r .\src\requirements-build.txt
+
+# 运行源码
 .\.venv\Scripts\python.exe -B .\src\main.py
+
+# 自检与打包
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\运行自检.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\编译打包.ps1
 ```
 
-也可双击根目录的启动、自检或编译入口。脚本优先使用项目 `.venv`，其次使用 SuperCodex 共享环境。自检输出位于 `process_test`，新 EXE 位于 `output/build_日期时间`。这些生成文件及虚拟环境不提交 Git。
+也可双击 `启动软件源码.cmd`、`运行自检.cmd`、`编译打包.cmd`。脚本优先使用项目 `.venv`，其次使用 SuperCodex 下现有共享环境。新 EXE 保存到 `output/build_日期时间/PlanLayerCreator.exe`，测试与编译中间文件保存到 `process_test`，均不提交到 Git。
 
-## 本机开发入口与来源
+本机固定开发目录：`D:\SuperCodex\41_PlanLayerCreator_20261124`。后续直接在该目录修改、编译及同步。使用共享环境时需保留 `D:\SuperCodex\.venvs\planlayercreator-hermes`。源码迁入自 `D:\09软件开发\通信规划图层生成工具（PlanLayerCreator）V2.0\源码`，原交付目录暂保留。
 
+## 📂 项目目录 / Project Layout
 
-- 创建日期：2026-11-24
-- 当前软件版本：V2.0（2.0.0.0）
-- 固定开发目录：`D:\SuperCodex\41_PlanLayerCreator_20261124`
-- 本项目直接复制自：`D:\09软件开发\通信规划图层生成工具（PlanLayerCreator）V2.0\源码`
-- 来源为已修复 MIF 数量核验、面域默认无填充的 V2.0。迁入时不改软件功能和布局。
+| 目录 | 内容 |
+|---|---|
+| `src` | 源码、资源、样例数据、依赖清单、打包配置 |
+| `scripts` | 启动、自检和编译脚本 |
+| `docs` | V2.0 使用说明书 |
+| `output` | 本机正式软件快照及后续编译成果，不提交 Git |
+| `process_test` | 本机测试、核验及编译中间文件，不提交 Git |
 
-## 下次如何修改和更新
+## 🏗️ 技术栈 / Tech Stack
 
-直接打开本项目，修改 `src` 中的源码。双击 `启动软件源码.cmd` 运行源码；双击 `运行自检.cmd` 检验；双击 `编译打包.cmd` 生成 EXE。
+Python 3.12 · PySide6 · pandas · numpy · pyogrio (GDAL) · shapely · pyproj · simplekml
 
-新编译成果进入 `output/build_日期时间/PlanLayerCreator.exe`，不会覆盖既有正式软件；发布前需检查并另行确认替换。根目录 output 中保留迁入时的正式 EXE、源码压缩包及核验记录，它们是迁入快照，后续修改不会自动更新这些快照。
+## 📄 许可证 / License
 
-## 目录
+本项目采用 [CC BY-NC 4.0（署名-非商业性使用）](LICENSE) 许可协议。
 
-- `src`：完整源码、资源、依赖版本清单和 PyInstaller 配置。
-- `scripts`：启动、自检、编译脚本，按脚本所在目录定位项目。
-- `output`：正式软件快照及后续编译成果。
-- `docs`：使用说明书。
-- `process_test`：迁移验证、测试和编译中间文件。
-- `data`、`refs`、`temp`：预留数据、参考材料和临时目录。
+- ✅ 可自由查看、下载、修改、分享源码
+- ✅ 使用时须保留作者署名
+- ❌ **禁止商业用途**（销售、集成到收费产品、有偿服务需单独商业授权）
 
-## 开发环境必须保留
+This project is licensed under [CC BY-NC 4.0](LICENSE) (Attribution-NonCommercial). Free for personal/non-commercial use. Commercial use requires a separate license.
 
-使用共享环境 `D:\SuperCodex\.venvs\planlayercreator-hermes`，以及基础 Python `C:\Users\Administrator\AppData\Local\Programs\Python\Python312`。不依赖旧的 41_PlanLayerCreator 项目文件夹。清理旧项目时不要误删共享环境；EXE 自身运行不需要该环境。
+## 📞 联系方式 / Contact
 
-若环境丢失，可使用 Python 3.12 创建虚拟环境并按 `src/requirements-build.txt` 恢复。脚本默认寻找 SuperCodex 下的共享环境，不自动联网或安装依赖。
+- **作者 Author**：通信民工（Jerry Xu）
+- **哔哩哔哩 Bilibili**：@通信民工（UID：482597398）
+- **微信公众号 WeChat**：@通信民工（ComDesigner）
+- **QQ**：853665220（@qq.com）
+- **网站 Website**：[http://www.txmg.com](http://www.txmg.com)
+- **著作 Book**：《5G网络规划与工程实践》（清华大学出版社出版，当当、京东、淘宝等平台均可购买）
 
-## 迁移记录
+### 微信公众号二维码 / WeChat QR Code
 
-2026-11-24：按用户指定目录复制最新 V2.0，未删除或移动原目录。源码逐文件 SHA256 校验见 `process_test/迁移源码校验.json`。历史核验记录中原路径仅用于追溯。
+扫描下方二维码关注微信公众号“通信民工（ComDesigner）”。
+
+Scan the QR code below to follow the WeChat official account “通信民工（ComDesigner）”.
+
+![微信公众号二维码 / WeChat QR Code](src/res/qrcode.jpg)

@@ -1,54 +1,4 @@
-﻿# PlanLayerCreator V2.0
-
-2026-11-23，基于 V1.4.1 完整依赖版更新，文件版本 2.0.0.0。
-
-- 所有选项卡只有一个 TAB (MapInfo)，使用内置运行库，不再启动 MapInfo 或让用户选择生成版本。
-- 先在私有目录生成并核对数量，再发布成果。同名输出自动另存 _2、_3，保留原成果。
-- 修复已有同名 TAB 导致的 GDAL 更新失败；收集底层错误信息。
-- 栅格 SHP 改为批量矩形几何和按列属性写入，本机 237722 行样例约 8.1 秒；边界与属性和原 99.282 秒成果一致。单次结果不含读入和 EXE 首次启动，不构成耗时承诺。
-- 路测和栅格 KML/KMZ 均带当前分档图例，KMZ 内嵌。KML 需一起携带同名 _kml_legend.png 及路测的全部 _kml_point*.png。
-- 栅格支持独立边框颜色、宽度、无边框、无填充及填充透明度。路测在 KML/KMZ/QML 中支持空心、独立轮廓和填充透明度。
-- 百分比透明度写入 KML/KMZ 和配套 QML；经典 TAB/MIF 原生对象不保存此参数，路测原生点不保存独立轮廓设置，界面按格式启用控件。
-- 每个成果仅写同名 _结果日志.txt，成功/失败统一记录输入、输出、数量、坐标方式、用时和问题结论，无过程或堆栈。
-- 仅使用帮助保留 8px 圆角滚动条与双端箭头；六个制作页面保持一屏，参数自然宽度靠左，完整状态可悬停查看。
-
-本次仅作 V2.0 布局微调：恢复原布局，制作页面不加滚动条；输入框与浏览按钮留出间距，样式行首左对齐，不按整页宽度均分控件。版本号、功能、默认参数及导出引擎保持不变。
-
-本次V2.0细节修复：MIF数量元数据为未知值时实际统计后再核验，仍拒绝真实数量不符的成果；面域默认勾选无填充，可取消勾选恢复填充。保持现有单屏左排布局及版本号。
-
-以下为历史版本记录，当前行为以前述内容及 V2.0 使用帮助为准。
-
----
-
-# PlanLayerCreator V1.4.1
-
-2026-11-22，基于 V1.4 完整依赖版维护修订，产品/文件版本 1.4.1.0。V1.4、V1.5 原目录保持独立。
-
-- 面域新增“无填充”“无边框”，修复线宽传递；KML/KMZ/TAB 保存设置。SHP 本身不保存面渲染样式。
-- 同名路测 KML/KMZ 可分别生成，资源文件按格式隔离。KML 须携带 `_kml_legend.png`、`_kml_point.png`；KMZ 内嵌图片，另存 `_kmz_legend.png`。
-- 修复 GCJ-02 常量缺失及静默失败。原坐标模式保持输入；只有确认来源为 GCJ-02 时才选择纠偏。
-- 路测 SHP 批量写入，保留坐标、中文属性、空值与字段名冲突处理。
-- TAB 默认保留本机 MapInfo 兼容转换，去掉固定等待并提前进入隐藏转换入口；新增“TAB (快速，MapInfo 15.2+)”，不再启动 MapInfo。快速模式不能用于 MapInfo 2012。
-- 移除未校准的预计秒数，显示处理阶段、已用时间和实际总耗时，保存同名 `_运行记录.txt`。
-- 按软件用途、数据准备、操作、格式与属性、坐标、兼容性、性能与常见问题重整帮助。
-
-实际数据核对：同名 CSV 的 109,189 条记录与新导出的 KML/KMZ 经纬度、电平一致，TAB/SHP 点坐标也一致。该结论不能证明源坐标属于 WGS84 或采集轨迹准确。
-
-以下保留历史版本说明；携带文件名称以本节及程序内 V1.4.1 帮助为准。
-
----
-
-# PlanLayerCreator V1.4
-
-本轮更新路测图例可读性、三档图例大小、帮助章节与作者卡片布局。源码版本 V1.4，产品/文件版本 1.4.0.0，按原有依赖打包。界面进一步美化和依赖精简留待后续处理。
-
-# PlanLayerCreator V1.3
-
-V1.3（2026-11-22）：路测/MR 自定义分档、区间开闭选择、配色 JSON 保存与加载；路测 KML/KMZ 自动导出高清图例并使用本地点图标。分档详情见程序内“使用帮助”和 CHANGELOG.md。
-
-路测 KML 需连同同名 `_legend.png`、`_point.png` 携带；KMZ 已内嵌资源，单文件可离线分享。输出存在同名文件时请更换名称。Google Earth 图例采用 ScreenOverlay，奥维尚需实机验收。
-
-# 通信规划图层生成工具 · PlanLayerCreator
+# 通信规划图层生成工具 · PlanLayerCreator V2.0
 
 **PlanLayerCreator — Communication Planning GIS Layer Generator**
 
@@ -84,9 +34,20 @@ A desktop GIS layer generator for telecom planning, RF optimization, and network
 - **稳定聚合 Stable Aggregation**：MR 原始样本在 UTM 投影中按实际米数聚合，可选平均值或中位数，并过滤样本数不足的网格。
 - **坐标纠偏 Coordinate Correction**：GCJ-02 → WGS84 一键纠偏。
 
+### V2.0 更新 / V2.0 Updates
+
+- **自定义分档与图例 Classification & Legends**：路测、MR 栅格支持编辑分档颜色及区间边界；KML/KMZ 支持导出图例，KMZ 内嵌资源，KML 须连同配套图片一起携带。
+- **填充与边框 Fill & Outline**：栅格支持无填充、无边框、边框宽度与颜色；面域默认无填充，可手动恢复。填充透明度按输出格式支持情况启用。
+- **输出核验 Validated Output**：修复 TAB 输出及 MIF 数量核验；同名成果自动另存，结果日志汇总输入、输出、数量、用时及问题结论。
+- **大数据与界面 Performance & UI**：优化栅格 SHP 输出；制作页面保持单屏、控件靠左，仅使用帮助保留页面滚动条。
+
+完整记录见 [CHANGELOG](CHANGELOG.md)，使用方法见 [V2.0 使用说明书](../docs/说明书_通信规划图层生成工具（PlanLayerCreator）_V2.0.docx)。
+
 ## 🖼️ 软件截图 / Screenshots
 
 ![主界面](screenshots/main.png)
+
+*截图沿用历史版本，当前界面以 V2.0 实际软件为准。*
 
 *更多截图见 [screenshots/](screenshots/) 目录。*
 
@@ -103,7 +64,7 @@ A desktop GIS layer generator for telecom planning, RF optimization, and network
 
 **说明 / Notes**：
 - TAB 输出为同名文件组（.tab/.dat/.map/.id），须整体交付。
-- V2.0 统一使用内置运行库生成 TAB，不依赖本机 MapInfo；面向 MapInfo 15.2+。
+- V2.0 统一使用内置运行库生成 TAB，不依赖本机 MapInfo，面向 MapInfo 15.2+。
 - SHP 标准不存渲染样式，路测/MR 附同名 QML 供 QGIS 使用。
 
 ## 🚀 快速开始 / Quick Start
@@ -114,27 +75,43 @@ A desktop GIS layer generator for telecom planning, RF optimization, and network
 
 ### 数据要求 / Data Requirements
 
-- 第一行为字段名称；必须包含**经度列**和**纬度列**
+- 第一行为字段名称；站点、扇区、路测及原始 MR 样本需提供**经度列**和**纬度列**
+- 线路与面域使用 WKT 几何列，具体字段要求见上方图层表
 - 栅格/路测图层额外需要**电平值列**（如 RSRP）
 - 扇区图层额外需要**方位角列**
 - 经纬度须为十进制度数（如 116.397128），不支持度分秒
-- 样例数据见 [`data/`](data/) 目录
+- 样例数据见 [`src/data/`](data/) 目录
 
 ## 🧪 开发者 / For Developers
 
-```bash
-# 创建虚拟环境（须用 CPython，非 conda）
+源码位于 `src`，使用 Windows x64 和 CPython 3.12。在仓库根目录（本文件上一级）打开 PowerShell：
+
+```powershell
+# 创建项目虚拟环境并安装固定版本依赖
 python -m venv .venv
-.venv\Scripts\pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -m pip install -r .\src\requirements-build.txt
 
-# 运行源码自检
-set QT_QPA_PLATFORM=offscreen
-set PLANLAYER_TAB_BACKEND=gdal
-python main.py --self-test test_output
+# 运行源码
+.\.venv\Scripts\python.exe -B .\src\main.py
 
-# 构建单文件 EXE
-python -m PyInstaller --clean PlanLayerCreator.spec
+# 自检与打包
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\运行自检.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\编译打包.ps1
 ```
+
+也可双击 `启动软件源码.cmd`、`运行自检.cmd`、`编译打包.cmd`。脚本优先使用项目 `.venv`，其次使用 SuperCodex 下现有共享环境。新 EXE 保存到 `output/build_日期时间/PlanLayerCreator.exe`，测试与编译中间文件保存到 `process_test`，均不提交到 Git。
+
+本机固定开发目录：`D:\SuperCodex\41_PlanLayerCreator_20261124`。后续直接在该目录修改、编译及同步。使用共享环境时需保留 `D:\SuperCodex\.venvs\planlayercreator-hermes`。源码迁入自 `D:\09软件开发\通信规划图层生成工具（PlanLayerCreator）V2.0\源码`，原交付目录暂保留。
+
+## 📂 项目目录 / Project Layout
+
+| 目录 | 内容 |
+|---|---|
+| `src` | 源码、资源、样例数据、依赖清单、打包配置 |
+| `scripts` | 启动、自检和编译脚本 |
+| `docs` | V2.0 使用说明书 |
+| `output` | 本机正式软件快照及后续编译成果，不提交 Git |
+| `process_test` | 本机测试、核验及编译中间文件，不提交 Git |
 
 ## 🏗️ 技术栈 / Tech Stack
 
@@ -152,8 +129,17 @@ This project is licensed under [CC BY-NC 4.0](LICENSE) (Attribution-NonCommercia
 
 ## 📞 联系方式 / Contact
 
-- **作者 Author**：通信民工（许景渊 / Jerry Xu）
+- **作者 Author**：通信民工（Jerry Xu）
 - **哔哩哔哩 Bilibili**：@通信民工（UID：482597398）
 - **微信公众号 WeChat**：@通信民工（ComDesigner）
 - **QQ**：853665220（@qq.com）
+- **网站 Website**：[http://www.txmg.com](http://www.txmg.com)
 - **著作 Book**：《5G网络规划与工程实践》（清华大学出版社出版，当当、京东、淘宝等平台均可购买）
+
+### 微信公众号二维码 / WeChat QR Code
+
+扫描下方二维码关注微信公众号“通信民工（ComDesigner）”。
+
+Scan the QR code below to follow the WeChat official account “通信民工（ComDesigner）”.
+
+![微信公众号二维码 / WeChat QR Code](res/qrcode.jpg)
